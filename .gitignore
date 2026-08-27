@@ -1,0 +1,6 @@
+deploy.local.sh
+vendor/
+.phpunit.result.cache
+composer.lock
+*.log
+debug.log

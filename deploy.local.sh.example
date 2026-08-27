@@ -1,0 +1,7 @@
+#!/bin/bash
+# Local overrides — do not commit.
+SERVER_USER="your-ssh-username"
+SERVER_HOST="intersoccer.legit.ninja"
+SERVER_PATH="/var/www/html/wp-content/plugins/intersoccer-player-birthdays"
+SSH_PORT="22"
+SSH_KEY="~/.ssh/id_rsa"

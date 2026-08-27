@@ -1,0 +1,11 @@
+{
+	"name": "intersoccer/player-birthdays",
+	"description": "Guardian calendar-birthday greeting emails for InterSoccer",
+	"type": "project",
+	"require": {
+		"php": ">=7.4"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^9.6"
+	}
+}

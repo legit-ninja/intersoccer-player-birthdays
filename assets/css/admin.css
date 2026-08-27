@@ -1,0 +1,45 @@
+.intersoccer-player-birthdays .intersoccer-pb-status {
+	min-height: 1.4em;
+}
+
+.intersoccer-player-birthdays .wp-editor-wrap {
+	margin-bottom: 1.5em;
+}
+
+.intersoccer-player-birthdays .intersoccer-pb-filters {
+	margin: 1em 0 1.25em;
+	padding: 12px 14px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+}
+
+.intersoccer-player-birthdays .intersoccer-pb-filters label {
+	font-weight: 600;
+	margin-right: 0.25em;
+}
+
+.intersoccer-player-birthdays .intersoccer-pb-filters input[type="search"] {
+	min-width: 16rem;
+	min-height: 2.25rem;
+}
+
+.intersoccer-player-birthdays .intersoccer-pb-filters input[type="number"] {
+	width: 5rem;
+	min-height: 2.25rem;
+}
+
+.intersoccer-player-birthdays .intersoccer-pb-empty-hidden {
+	display: none;
+}
+
+.intersoccer-player-birthdays .intersoccer-pb-opt-out-wrap {
+	display: inline-flex;
+	align-items: center;
+	margin: 0;
+}
+
+.intersoccer-player-birthdays .intersoccer-pb-manual-send:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
