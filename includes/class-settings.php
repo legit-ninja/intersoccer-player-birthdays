@@ -17,6 +17,8 @@ class Settings {
 	const OPTION_KEY = 'intersoccer_player_birthdays_settings';
 	const LAST_DIGEST_OPTION = 'intersoccer_bday_last_digest_ymd';
 	const TIMEZONE = 'Europe/Zurich';
+	/** Max lead / look-ahead / hide-nearer days (~5 months). */
+	const WINDOW_DAYS_MAX = 153;
 
 	/**
 	 * Default settings.
@@ -68,9 +70,12 @@ class Settings {
 		$clean['digest_enabled'] = !empty($input['digest_enabled']);
 		$cadence = isset($input['digest_cadence']) ? sanitize_key((string) $input['digest_cadence']) : 'daily';
 		$clean['digest_cadence'] = in_array($cadence, array('daily', 'weekly'), true) ? $cadence : 'daily';
-		$clean['lead_days'] = self::clamp_int($input['lead_days'] ?? 7, 1, 30, 7);
-		$clean['look_ahead_days'] = self::clamp_int($input['look_ahead_days'] ?? 60, 1, 90, 60);
-		$clean['min_notice_days'] = self::clamp_int($input['min_notice_days'] ?? 14, 0, 90, 14);
+		$clean['lead_days'] = self::clamp_int($input['lead_days'] ?? 7, 1, self::WINDOW_DAYS_MAX, 7);
+		$clean['look_ahead_days'] = self::clamp_int($input['look_ahead_days'] ?? 60, 1, self::WINDOW_DAYS_MAX, 60);
+		if ($clean['lead_days'] > $clean['look_ahead_days']) {
+			$clean['look_ahead_days'] = $clean['lead_days'];
+		}
+		$clean['min_notice_days'] = self::clamp_int($input['min_notice_days'] ?? 14, 0, self::WINDOW_DAYS_MAX, 14);
 		if ($clean['min_notice_days'] > $clean['look_ahead_days']) {
 			$clean['min_notice_days'] = $clean['look_ahead_days'];
 		}

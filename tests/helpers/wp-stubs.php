@@ -193,6 +193,11 @@ if (!function_exists('add_action')) {
 	function add_action($tag, $fn, $priority = 10, $accepted = 1) {
 	}
 }
+if (!function_exists('wp_specialchars_decode')) {
+	function wp_specialchars_decode($text, $quote_style = ENT_NOQUOTES) {
+		return htmlspecialchars_decode((string) $text, $quote_style);
+	}
+}
 if (!function_exists('get_bloginfo')) {
 	function get_bloginfo($show = '') {
 		return 'InterSoccer Test';

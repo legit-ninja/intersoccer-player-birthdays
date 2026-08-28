@@ -184,17 +184,19 @@ class Mailer {
 	 * @return string
 	 */
 	private function wrap_html($heading, $body) {
+		$kses = wp_kses_post($body);
+		$prepared = Templates::newlines_in_text_to_br(Templates::empty_blocks_to_br($kses));
 		if (function_exists('wc_get_template')) {
 			ob_start();
 			wc_get_template('emails/email-header.php', array('email_heading' => $heading));
-			echo wp_kses_post($body);
+			echo $prepared;
 			wc_get_template('emails/email-footer.php');
 			$wrapped = ob_get_clean();
 			if (is_string($wrapped) && $wrapped !== '') {
-				return $wrapped;
+				return Templates::replace_chrome_placeholders($wrapped);
 			}
 		}
-		return '<html><body>' . wp_kses_post($body) . '</body></html>';
+		return Templates::replace_chrome_placeholders('<html><body>' . $prepared . '</body></html>');
 	}
 
 	/**
