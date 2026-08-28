@@ -147,6 +147,83 @@ class Templates {
 			'age_turning'         => isset($candidate['age_turning']) ? (string) (int) $candidate['age_turning'] : '',
 			'birthday_date'       => $date,
 			'opt_out_url'         => (string) $opt_out_url,
+			'site_title'          => self::site_title(),
 		);
+	}
+
+	/**
+	 * WordPress site title (blogname).
+	 *
+	 * @return string
+	 */
+	public static function site_title() {
+		if (function_exists('wp_specialchars_decode')) {
+			return wp_specialchars_decode((string) get_option('blogname', ''), ENT_QUOTES);
+		}
+		return function_exists('get_bloginfo') ? (string) get_bloginfo('name') : '';
+	}
+
+	/**
+	 * Replace WooCommerce footer / greeting site-title placeholders.
+	 *
+	 * Double-brace {{site_title}} is replaced first so it does not become {Title}.
+	 *
+	 * @param string $html Wrapped or template HTML.
+	 * @return string
+	 */
+	public static function replace_chrome_placeholders($html) {
+		$title = self::site_title();
+		$out = str_replace(
+			array('{{site_title}}', '{site_title}'),
+			$title,
+			(string) $html
+		);
+		return $out;
+	}
+
+	/**
+	 * Turn empty Outlook/TinyMCE spacer blocks into a visible line break.
+	 *
+	 * Copied HTML often uses empty &lt;div&gt;&lt;/div&gt; for paragraph gaps.
+	 * Those collapse to zero height in WooCommerce email CSS.
+	 *
+	 * @param string $html HTML fragment.
+	 * @return string
+	 */
+	public static function empty_blocks_to_br($html) {
+		return (string) preg_replace('/<(div|p)(\s[^>]*)?>\s*<\/\1>/i', '<br />', (string) $html);
+	}
+
+	/**
+	 * Turn CRLF/LF inside text nodes into &lt;br /&gt;.
+	 *
+	 * Pretty-printed HTML (newlines between tags) is left unchanged so layout
+	 * spacing comes from the markup, not extra breaks.
+	 *
+	 * @param string $html HTML fragment.
+	 * @return string
+	 */
+	public static function newlines_in_text_to_br($html) {
+		$html = str_replace(array("\r\n", "\r"), "\n", (string) $html);
+		$parts = preg_split('/(<[^>]+>)/', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+		if (!is_array($parts)) {
+			return $html;
+		}
+		$out = '';
+		foreach ($parts as $part) {
+			if ($part === '') {
+				continue;
+			}
+			if (isset($part[0]) && $part[0] === '<') {
+				$out .= $part;
+				continue;
+			}
+			if (trim($part) === '') {
+				$out .= $part;
+				continue;
+			}
+			$out .= str_replace("\n", "<br />\n", $part);
+		}
+		return $out;
 	}
 }

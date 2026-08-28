@@ -296,7 +296,8 @@ class Admin {
 		echo '<form method="post">';
 		wp_nonce_field(self::NONCE_ACTION);
 		echo '<input type="hidden" name="intersoccer_pb_action" value="save_templates" />';
-		echo '<p class="description">' . esc_html__('Merge tags: {{player_first_name}}, {{player_last_name}}, {{guardian_first_name}}, {{age_turning}}, {{birthday_date}}, {{opt_out_url}}', 'intersoccer-player-birthdays') . '</p>';
+		echo '<p class="description">' . esc_html__('Merge tags: {{player_first_name}}, {{player_last_name}}, {{guardian_first_name}}, {{age_turning}}, {{birthday_date}}, {{opt_out_url}}, {{site_title}}', 'intersoccer-player-birthdays') . '</p>';
+		echo '<p class="description">' . esc_html__('Add Media can insert a banner or signature. Use absolute https image URLs (not relative paths). For a store-wide email banner, set WooCommerce → Settings → Emails → Header image.', 'intersoccer-player-birthdays') . '</p>';
 		$labels = array(
 			'en' => __('English', 'intersoccer-player-birthdays'),
 			'fr' => __('French', 'intersoccer-player-birthdays'),
@@ -313,7 +314,7 @@ class Admin {
 				array(
 					'textarea_name' => 'templates[' . $lang . '][body]',
 					'textarea_rows' => 10,
-					'media_buttons' => false,
+					'media_buttons' => true,
 				)
 			);
 		}

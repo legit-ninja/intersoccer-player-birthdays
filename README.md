@@ -21,7 +21,11 @@ This is **not** birthday-party product bookings and **not** the Reports/Rosters 
 - Settings — automation (off by default), lead days, digest, extra recipients, test address
 - Log — player UUID + user ID + year + mode (no names/emails/DOB)
 
-Merge tags: `{{player_first_name}}`, `{{player_last_name}}`, `{{guardian_first_name}}`, `{{age_turning}}`, `{{birthday_date}}`, `{{opt_out_url}}`
+Merge tags: `{{player_first_name}}`, `{{player_last_name}}`, `{{guardian_first_name}}`, `{{age_turning}}`, `{{birthday_date}}`, `{{opt_out_url}}`, `{{site_title}}`
+
+Images (banner or signature) must use absolute `https://` URLs. Store-wide email banner: WooCommerce → Settings → Emails → Header image.
+
+Outlook/Word paste is supported: empty spacer `<div>`/`<p>` tags are turned into line breaks so paragraph gaps survive WooCommerce email CSS. Pretty-print newlines between tags are not converted (that over-spaces HTML). `{site_title}` / `{{site_title}}` in Woo footer chrome are replaced with the site name.
 
 Timezone: Europe/Zurich. 29 Feb in non-leap years is treated as 28 Feb.
 
