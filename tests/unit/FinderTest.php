@@ -73,6 +73,26 @@ class FinderTest extends TestCase {
 		$this->assertNull($outside);
 	}
 
+	public function test_evaluate_player_five_month_lead_and_look_ahead() {
+		$now = $this->onDate('2026-08-18');
+		$player = array(
+			'player_id'  => 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
+			'first_name' => 'Mia',
+			'last_name'  => 'Test',
+			'dob'        => '2018-01-15',
+		);
+		$exact = Finder::evaluate_player($player, 9, $now, 90, 150);
+		$this->assertNotNull($exact);
+		$this->assertSame(150, $exact['days_until']);
+
+		$in_window = Finder::evaluate_player($player, 9, $now, 153, null);
+		$this->assertNotNull($in_window);
+		$this->assertSame(150, $in_window['days_until']);
+
+		$too_soon = Finder::evaluate_player($player, 9, $now, 90, null);
+		$this->assertNull($too_soon);
+	}
+
 	public function test_evaluate_player_skips_missing_id_and_invalid_dob() {
 		$now = $this->onDate('2026-08-18');
 		$this->assertNull(Finder::evaluate_player(array('dob' => '2018-08-25'), 1, $now, 14, null));

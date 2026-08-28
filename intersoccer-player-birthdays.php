@@ -3,7 +3,7 @@
  * Plugin Name: InterSoccer Player Birthdays
  * Plugin URI: https://plugins.underdogunlimited.com
  * Description: Emails guardians before a child's calendar birthday and sends office a digest of upcoming birthdays. Not birthday-party products.
- * Version: 1.8.25
+ * Version: 1.8.28
  * Author: Jeremy Lee
  * Author URI: https://underdogunlimited.com
  * License: GPL-2.0-or-later
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 
 if (!defined('INTERSOCCER_PLAYER_BIRTHDAYS_LOADED')) {
 	define('INTERSOCCER_PLAYER_BIRTHDAYS_LOADED', true);
-	define('INTERSOCCER_PLAYER_BIRTHDAYS_VERSION', '1.8.25');
+	define('INTERSOCCER_PLAYER_BIRTHDAYS_VERSION', '1.8.28');
 	define('INTERSOCCER_PLAYER_BIRTHDAYS_FILE', __FILE__);
 	define('INTERSOCCER_PLAYER_BIRTHDAYS_PATH', plugin_dir_path(__FILE__));
 	define('INTERSOCCER_PLAYER_BIRTHDAYS_URL', plugin_dir_url(__FILE__));

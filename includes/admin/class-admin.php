@@ -198,7 +198,7 @@ class Admin {
 		$settings = Settings::get();
 		$search = isset($_GET['pb_search']) ? sanitize_text_field(wp_unslash($_GET['pb_search'])) : '';
 		$min_days = isset($_GET['pb_min_days'])
-			? Settings::clamp_int($_GET['pb_min_days'], 0, 90, (int) $settings['min_notice_days'])
+			? Settings::clamp_int($_GET['pb_min_days'], 0, Settings::WINDOW_DAYS_MAX, (int) $settings['min_notice_days'])
 			: (int) $settings['min_notice_days'];
 		$all_rows = Finder::scan(Settings::now(), (int) $settings['look_ahead_days'], null);
 		$visible_count = count(Finder::filter_upcoming_rows($all_rows, $search, $min_days));
@@ -215,7 +215,7 @@ class Admin {
 		echo '<label for="intersoccer-pb-search">' . esc_html__('Search parent', 'intersoccer-player-birthdays') . '</label> ';
 		echo '<input type="search" id="intersoccer-pb-search" name="pb_search" value="' . esc_attr($search) . '" placeholder="' . esc_attr__('Parent name or email', 'intersoccer-player-birthdays') . '" /> ';
 		echo '<label for="intersoccer-pb-min-days">' . esc_html__('Hide if fewer than', 'intersoccer-player-birthdays') . '</label> ';
-		echo '<input type="number" id="intersoccer-pb-min-days" name="pb_min_days" min="0" max="90" value="' . esc_attr((string) $min_days) . '" /> ';
+		echo '<input type="number" id="intersoccer-pb-min-days" name="pb_min_days" min="0" max="' . esc_attr((string) Settings::WINDOW_DAYS_MAX) . '" value="' . esc_attr((string) $min_days) . '" /> ';
 		echo esc_html__('days away', 'intersoccer-player-birthdays') . ' ';
 		submit_button(__('Apply', 'intersoccer-player-birthdays'), 'secondary', 'pb_filter', false);
 		echo '</p>';
@@ -335,8 +335,14 @@ class Admin {
 		echo '<label><input type="checkbox" name="settings[automation_enabled]" value="1" ' . checked(!empty($s['automation_enabled']), true, false) . ' /> ';
 		echo esc_html__('Send parent emails automatically (off until you enable it).', 'intersoccer-player-birthdays') . '</label></td></tr>';
 		echo '<tr><th>' . esc_html__('Lead days', 'intersoccer-player-birthdays') . '</th><td>';
-		echo '<input type="number" min="1" max="30" name="settings[lead_days]" value="' . esc_attr((string) (int) $s['lead_days']) . '" /> ';
-		echo '<span class="description">' . esc_html__('Days before the birthday to send the greeting (1–30).', 'intersoccer-player-birthdays') . '</span></td></tr>';
+		echo '<input type="number" min="1" max="' . esc_attr((string) Settings::WINDOW_DAYS_MAX) . '" name="settings[lead_days]" value="' . esc_attr((string) (int) $s['lead_days']) . '" /> ';
+		echo '<span class="description">' . esc_html(
+			sprintf(
+				/* translators: %d: maximum lead days */
+				__('Days before the birthday to send the greeting (1–%d).', 'intersoccer-player-birthdays'),
+				Settings::WINDOW_DAYS_MAX
+			)
+		) . '</span></td></tr>';
 		echo '<tr><th>' . esc_html__('Admin digest', 'intersoccer-player-birthdays') . '</th><td>';
 		echo '<label><input type="checkbox" name="settings[digest_enabled]" value="1" ' . checked(!empty($s['digest_enabled']), true, false) . ' /> ';
 		echo esc_html__('Email WordPress admin a list of upcoming birthdays.', 'intersoccer-player-birthdays') . '</label></td></tr>';
@@ -346,10 +352,16 @@ class Admin {
 		echo '<option value="weekly" ' . selected($s['digest_cadence'], 'weekly', false) . '>' . esc_html__('Weekly', 'intersoccer-player-birthdays') . '</option>';
 		echo '</select></td></tr>';
 		echo '<tr><th>' . esc_html__('Look-ahead days', 'intersoccer-player-birthdays') . '</th><td>';
-		echo '<input type="number" min="1" max="90" name="settings[look_ahead_days]" value="' . esc_attr((string) (int) $s['look_ahead_days']) . '" />';
-		echo '<p class="description">' . esc_html__('How far ahead to list and include in the admin digest (1–90). Keep this larger than the hide-below value.', 'intersoccer-player-birthdays') . '</p></td></tr>';
+		echo '<input type="number" min="1" max="' . esc_attr((string) Settings::WINDOW_DAYS_MAX) . '" name="settings[look_ahead_days]" value="' . esc_attr((string) (int) $s['look_ahead_days']) . '" />';
+		echo '<p class="description">' . esc_html(
+			sprintf(
+				/* translators: %d: maximum look-ahead days */
+				__('How far ahead to list and include in the admin digest (1–%d). Keep this larger than the hide-below value.', 'intersoccer-player-birthdays'),
+				Settings::WINDOW_DAYS_MAX
+			)
+		) . '</p></td></tr>';
 		echo '<tr><th>' . esc_html__('Hide nearer than (days)', 'intersoccer-player-birthdays') . '</th><td>';
-		echo '<input type="number" min="0" max="90" name="settings[min_notice_days]" value="' . esc_attr((string) (int) $s['min_notice_days']) . '" />';
+		echo '<input type="number" min="0" max="' . esc_attr((string) Settings::WINDOW_DAYS_MAX) . '" name="settings[min_notice_days]" value="' . esc_attr((string) (int) $s['min_notice_days']) . '" />';
 		echo '<p class="description">' . esc_html__('Upcoming list hides birthdays fewer than this many days away (default 14, so office can contact parents about two weeks before). 0 shows every birthday in the look-ahead window.', 'intersoccer-player-birthdays') . '</p></td></tr>';
 		echo '<tr><th>' . esc_html__('Extra digest recipients', 'intersoccer-player-birthdays') . '</th><td>';
 		echo '<input type="text" class="large-text" name="settings[digest_extra_recipients]" value="' . esc_attr($s['digest_extra_recipients']) . '" />';
