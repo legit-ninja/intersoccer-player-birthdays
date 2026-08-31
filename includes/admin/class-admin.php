@@ -35,6 +35,7 @@ class Admin {
 	 */
 	public function register() {
 		add_action('admin_menu', array($this, 'register_menu'));
+		add_action('admin_init', array($this, 'maybe_export'), 5);
 		add_action('admin_init', array($this, 'handle_posts'));
 		add_action('admin_enqueue_scripts', array($this, 'enqueue'));
 		add_action('wp_ajax_intersoccer_pb_test_send', array($this, 'ajax_test_send'));
@@ -139,6 +140,53 @@ class Admin {
 			wp_safe_redirect(add_query_arg(array('page' => self::PAGE_SLUG, 'tab' => 'templates', 'updated' => '1'), admin_url('admin.php')));
 			exit;
 		}
+		if ($action === 'import_opt_out_preview') {
+			$this->handle_opt_out_preview();
+		}
+		if ($action === 'import_opt_out_apply') {
+			$this->handle_opt_out_apply();
+		}
+	}
+
+	/**
+	 * Stream opted-out guardians as CSV (no admin chrome).
+	 *
+	 * @return void
+	 */
+	public function maybe_export() {
+		if (!isset($_GET['page'], $_GET['intersoccer_pb_action'])) {
+			return;
+		}
+		if (sanitize_key(wp_unslash($_GET['page'])) !== self::PAGE_SLUG) {
+			return;
+		}
+		if (sanitize_key(wp_unslash($_GET['intersoccer_pb_action'])) !== 'export_opt_out') {
+			return;
+		}
+		if (!current_user_can(self::CAPABILITY)) {
+			wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'intersoccer-player-birthdays'));
+		}
+		$nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
+		if ($nonce === '' || !wp_verify_nonce($nonce, self::NONCE_ACTION)) {
+			wp_die(esc_html__('Invalid export link. Open Opt out and try again.', 'intersoccer-player-birthdays'));
+		}
+		if (function_exists('nocache_headers')) {
+			nocache_headers();
+		}
+		$filename = 'intersoccer-birthday-opt-outs.csv';
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		$out = fopen('php://output', 'w');
+		if ($out === false) {
+			exit;
+		}
+		fwrite($out, "\xEF\xBB\xBF");
+		fputcsv($out, array('Name', 'Email'));
+		foreach (OptOutImport::list_opted_out() as $row) {
+			fputcsv($out, array($row['name'], $row['email']));
+		}
+		fclose($out);
+		exit;
 	}
 
 	/**
@@ -149,7 +197,10 @@ class Admin {
 			wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'intersoccer-player-birthdays'));
 		}
 		$tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'upcoming';
-		if (!in_array($tab, array('upcoming', 'templates', 'settings', 'log'), true)) {
+		if ($tab === 'import') {
+			$tab = 'opt-out';
+		}
+		if (!in_array($tab, array('upcoming', 'templates', 'settings', 'log', 'opt-out'), true)) {
 			$tab = 'upcoming';
 		}
 		echo '<div class="wrap intersoccer-player-birthdays">';
@@ -165,6 +216,8 @@ class Admin {
 			$this->render_settings();
 		} elseif ($tab === 'log') {
 			$this->render_log();
+		} elseif ($tab === 'opt-out') {
+			$this->render_import();
 		} else {
 			$this->render_upcoming();
 		}
@@ -178,6 +231,7 @@ class Admin {
 	private function render_tabs($current) {
 		$tabs = array(
 			'upcoming'  => __('Upcoming', 'intersoccer-player-birthdays'),
+			'opt-out'   => __('Opt out', 'intersoccer-player-birthdays'),
 			'templates' => __('Templates', 'intersoccer-player-birthdays'),
 			'settings'  => __('Settings', 'intersoccer-player-birthdays'),
 			'log'       => __('Log', 'intersoccer-player-birthdays'),
@@ -189,6 +243,200 @@ class Admin {
 			echo '<a class="' . esc_attr($class) . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
 		}
 		echo '</nav>';
+	}
+
+	/**
+	 * @param array<string, string> $args Query args.
+	 * @return void
+	 */
+	private function redirect_import(array $args) {
+		$args = array_merge(
+			array(
+				'page' => self::PAGE_SLUG,
+				'tab'  => 'opt-out',
+			),
+			$args
+		);
+		wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+		exit;
+	}
+
+	/**
+	 * @return void
+	 */
+	private function handle_opt_out_preview() {
+		$file = isset($_FILES['opt_out_csv']) && is_array($_FILES['opt_out_csv']) ? $_FILES['opt_out_csv'] : array();
+		$tmp = isset($file['tmp_name']) ? (string) $file['tmp_name'] : '';
+		$error = isset($file['error']) ? (int) $file['error'] : 4;
+		if ($error !== 0 || $tmp === '' || !is_uploaded_file($tmp) || !is_readable($tmp)) {
+			$this->redirect_import(array('import_error' => 'upload'));
+		}
+		$raw = file_get_contents($tmp);
+		if (!is_string($raw) || $raw === '') {
+			$this->redirect_import(array('import_error' => 'empty'));
+		}
+		$parsed = OptOutImport::parse_csv($raw);
+		if (empty($parsed['ok'])) {
+			$this->redirect_import(array('import_error' => isset($parsed['error']) ? (string) $parsed['error'] : 'parse'));
+		}
+		$classified = OptOutImport::classify_rows($parsed['rows']);
+		set_transient(OptOutImport::transient_key(), $classified, OptOutImport::TRANSIENT_TTL);
+		$this->redirect_import(array('preview' => '1'));
+	}
+
+	/**
+	 * @return void
+	 */
+	private function handle_opt_out_apply() {
+		$classified = get_transient(OptOutImport::transient_key());
+		if (!is_array($classified)) {
+			$this->redirect_import(array('import_error' => 'expired'));
+		}
+		$n = OptOutImport::apply(OptOutImport::apply_ids($classified));
+		delete_transient(OptOutImport::transient_key());
+		$this->redirect_import(array('applied' => (string) $n));
+	}
+
+	/**
+	 * @return void
+	 */
+	private function render_import() {
+		if (isset($_GET['import_error'])) {
+			$key = sanitize_key(wp_unslash($_GET['import_error']));
+			$messages = array(
+				'upload'                 => __('Could not read the uploaded file.', 'intersoccer-player-birthdays'),
+				'empty'                  => __('The CSV file was empty.', 'intersoccer-player-birthdays'),
+				'missing_email_column'   => __('The CSV needs an Email column. Save the spreadsheet as a UTF-8 CSV.', 'intersoccer-player-birthdays'),
+				'parse'                  => __('Could not parse the CSV.', 'intersoccer-player-birthdays'),
+				'expired'                => __('The preview expired. Upload the CSV again.', 'intersoccer-player-birthdays'),
+			);
+			$msg = isset($messages[ $key ]) ? $messages[ $key ] : $messages['parse'];
+			echo '<div class="notice notice-error"><p>' . esc_html($msg) . '</p></div>';
+		}
+		if (isset($_GET['applied'])) {
+			$n = absint($_GET['applied']);
+			echo '<div class="notice notice-success is-dismissible"><p>';
+			echo esc_html(
+				sprintf(
+					/* translators: %d: number of guardians opted out */
+					_n('%d guardian opted out of birthday greetings.', '%d guardians opted out of birthday greetings.', $n, 'intersoccer-player-birthdays'),
+					$n
+				)
+			);
+			echo '</p></div>';
+		}
+
+		echo '<p>' . esc_html__('This only opts guardians out of calendar birthday greeting emails — not other InterSoccer marketing.', 'intersoccer-player-birthdays') . '</p>';
+		echo '<p class="description">' . esc_html__('Save the marketing spreadsheet as a UTF-8 CSV with an Email column. Name is optional.', 'intersoccer-player-birthdays') . '</p>';
+
+		$export_url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'page'                 => self::PAGE_SLUG,
+					'intersoccer_pb_action' => 'export_opt_out',
+				),
+				admin_url('admin.php')
+			),
+			self::NONCE_ACTION
+		);
+		echo '<p><a class="button" href="' . esc_url($export_url) . '">' . esc_html__('Export opted-out customers', 'intersoccer-player-birthdays') . '</a></p>';
+
+		echo '<form method="post" enctype="multipart/form-data">';
+		wp_nonce_field(self::NONCE_ACTION);
+		echo '<input type="hidden" name="intersoccer_pb_action" value="import_opt_out_preview" />';
+		echo '<p><input type="file" name="opt_out_csv" accept=".csv,text/csv" required /></p>';
+		submit_button(__('Preview matches', 'intersoccer-player-birthdays'), 'secondary', 'submit', false);
+		echo '</form>';
+
+		$classified = array();
+		if (isset($_GET['preview'])) {
+			$stored = get_transient(OptOutImport::transient_key());
+			if (is_array($stored)) {
+				$classified = $stored;
+			} else {
+				echo '<div class="notice notice-warning"><p>' . esc_html__('The preview expired. Upload the CSV again.', 'intersoccer-player-birthdays') . '</p></div>';
+			}
+		}
+		if ($classified === array()) {
+			return;
+		}
+
+		$counts = array(
+			'matched'    => 0,
+			'already'    => 0,
+			'unmatched'  => 0,
+			'ambiguous'  => 0,
+			'name_warn'  => 0,
+		);
+		foreach ($classified as $row) {
+			$status = isset($row['status']) ? (string) $row['status'] : '';
+			if (isset($counts[ $status ])) {
+				$counts[ $status ]++;
+			}
+			if (!empty($row['name_mismatch'])) {
+				$counts['name_warn']++;
+			}
+		}
+
+		echo '<p><strong>' . esc_html__('Preview (nothing is saved until you apply)', 'intersoccer-player-birthdays') . '</strong></p>';
+		echo '<ul>';
+		echo '<li>' . esc_html(sprintf(/* translators: %d: count */ __('Matched: %d', 'intersoccer-player-birthdays'), $counts['matched'])) . '</li>';
+		echo '<li>' . esc_html(sprintf(/* translators: %d: count */ __('Already opted out: %d', 'intersoccer-player-birthdays'), $counts['already'])) . '</li>';
+		echo '<li>' . esc_html(sprintf(/* translators: %d: count */ __('Unmatched: %d', 'intersoccer-player-birthdays'), $counts['unmatched'])) . '</li>';
+		echo '<li>' . esc_html(sprintf(/* translators: %d: count */ __('Ambiguous (same billing email on more than one account): %d', 'intersoccer-player-birthdays'), $counts['ambiguous'])) . '</li>';
+		echo '<li>' . esc_html(sprintf(/* translators: %d: count */ __('Name does not match account: %d', 'intersoccer-player-birthdays'), $counts['name_warn'])) . '</li>';
+		echo '</ul>';
+
+		$this->render_import_table(__('Will opt out', 'intersoccer-player-birthdays'), $classified, 'matched');
+		$this->render_import_table(__('Already opted out', 'intersoccer-player-birthdays'), $classified, 'already');
+		$this->render_import_table(__('Not found', 'intersoccer-player-birthdays'), $classified, 'unmatched');
+		$this->render_import_table(__('Ambiguous', 'intersoccer-player-birthdays'), $classified, 'ambiguous');
+
+		if ($counts['matched'] > 0) {
+			echo '<form method="post">';
+			wp_nonce_field(self::NONCE_ACTION);
+			echo '<input type="hidden" name="intersoccer_pb_action" value="import_opt_out_apply" />';
+			submit_button(__('Apply opt-out to matched guardians', 'intersoccer-player-birthdays'));
+			echo '</form>';
+		}
+	}
+
+	/**
+	 * @param string                           $title      Heading.
+	 * @param array<int, array<string, mixed>> $classified Rows.
+	 * @param string                           $status     Status key.
+	 * @return void
+	 */
+	private function render_import_table($title, array $classified, $status) {
+		$rows = array();
+		foreach ($classified as $row) {
+			if (is_array($row) && ($row['status'] ?? '') === $status) {
+				$rows[] = $row;
+			}
+		}
+		if ($rows === array()) {
+			return;
+		}
+		echo '<h2>' . esc_html($title) . '</h2>';
+		echo '<table class="widefat striped"><thead><tr>';
+		echo '<th>' . esc_html__('Email', 'intersoccer-player-birthdays') . '</th>';
+		echo '<th>' . esc_html__('Spreadsheet name', 'intersoccer-player-birthdays') . '</th>';
+		echo '<th>' . esc_html__('Account', 'intersoccer-player-birthdays') . '</th>';
+		echo '<th>' . esc_html__('Note', 'intersoccer-player-birthdays') . '</th>';
+		echo '</tr></thead><tbody>';
+		foreach ($rows as $row) {
+			$note = '';
+			if (!empty($row['name_mismatch'])) {
+				$note = __('Name does not match this account (email still matches).', 'intersoccer-player-birthdays');
+			}
+			echo '<tr>';
+			echo '<td>' . esc_html(isset($row['email']) ? (string) $row['email'] : '') . '</td>';
+			echo '<td>' . esc_html(isset($row['name']) ? (string) $row['name'] : '') . '</td>';
+			echo '<td>' . esc_html(isset($row['user_label']) ? (string) $row['user_label'] : '') . '</td>';
+			echo '<td>' . esc_html($note) . '</td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
 	}
 
 	/**
