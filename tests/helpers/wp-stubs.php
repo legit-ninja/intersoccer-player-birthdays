@@ -15,6 +15,8 @@ $GLOBALS['wp_can_manage'] = true;
 $GLOBALS['wp_options'] = array();
 $GLOBALS['wp_user_meta'] = array();
 $GLOBALS['wp_mail_sent'] = array();
+$GLOBALS['wp_users'] = array();
+$GLOBALS['wp_transients'] = array();
 
 if (!function_exists('__')) {
 	function __($text, $domain = 'default') {
@@ -206,5 +208,81 @@ if (!function_exists('get_bloginfo')) {
 if (!function_exists('get_user_locale')) {
 	function get_user_locale($user_id) {
 		return 'en_US';
+	}
+}
+if (!function_exists('get_user_by')) {
+	function get_user_by($field, $value) {
+		if ($field !== 'email') {
+			return false;
+		}
+		$value = strtolower(trim((string) $value));
+		foreach ($GLOBALS['wp_users'] as $user) {
+			if (!is_object($user)) {
+				continue;
+			}
+			$email = isset($user->user_email) ? strtolower((string) $user->user_email) : '';
+			if ($email === $value) {
+				return $user;
+			}
+		}
+		return false;
+	}
+}
+if (!function_exists('get_users')) {
+	function get_users($args = array()) {
+		$args = is_array($args) ? $args : array();
+		$key = isset($args['meta_key']) ? (string) $args['meta_key'] : '';
+		$value = isset($args['meta_value']) ? (string) $args['meta_value'] : '';
+		if (isset($args['meta_query']) && is_array($args['meta_query'])) {
+			foreach ($args['meta_query'] as $query) {
+				if (!is_array($query) || !isset($query['key'])) {
+					continue;
+				}
+				if (($query['compare'] ?? '') === 'EXISTS') {
+					continue;
+				}
+				$key = (string) $query['key'];
+				$value = isset($query['value']) ? (string) $query['value'] : '';
+			}
+		}
+		if ($key === '') {
+			return array();
+		}
+		$value = strtolower(trim((string) $value));
+		$out = array();
+		foreach ($GLOBALS['wp_users'] as $id => $user) {
+			$meta = strtolower(trim((string) get_user_meta((int) $id, $key, true)));
+			if ($meta === $value) {
+				$out[] = $user;
+			}
+		}
+		return $out;
+	}
+}
+if (!function_exists('set_transient')) {
+	function set_transient($transient, $value, $expiration = 0) {
+		$GLOBALS['wp_transients'][ (string) $transient ] = $value;
+		return true;
+	}
+}
+if (!function_exists('get_transient')) {
+	function get_transient($transient) {
+		$key = (string) $transient;
+		return array_key_exists($key, $GLOBALS['wp_transients']) ? $GLOBALS['wp_transients'][ $key ] : false;
+	}
+}
+if (!function_exists('wp_verify_nonce')) {
+	function wp_verify_nonce($nonce, $action = -1) {
+		return !empty($GLOBALS['wp_nonce_ok']);
+	}
+}
+if (!function_exists('wp_nonce_url')) {
+	function wp_nonce_url($url, $action = -1, $name = '_wpnonce') {
+		$sep = strpos($url, '?') === false ? '?' : '&';
+		return $url . $sep . $name . '=test-nonce';
+	}
+}
+if (!function_exists('nocache_headers')) {
+	function nocache_headers() {
 	}
 }

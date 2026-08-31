@@ -17,6 +17,7 @@ This is **not** birthday-party product bookings and **not** the Reports/Rosters 
 **Player Birthdays** in wp-admin:
 
 - Upcoming — queue, send now, opt-out
+- Opt out — import a UTF-8 CSV (Email, optional Name) to set birthday-greeting opt-out; export opted-out customers as CSV
 - Templates — EN/FR/DE `wp_editor` + merge tags
 - Settings — automation (off by default), lead days, digest, extra recipients, test address (lead / look-ahead max 153 days, about 5 months; defaults 7 / 60 / 21)
 - Log — player UUID + user ID + year + mode (no names/emails/DOB)

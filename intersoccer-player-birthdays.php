@@ -33,6 +33,7 @@ if (!defined('INTERSOCCER_PLAYER_BIRTHDAYS_LOADED')) {
 	require_once INTERSOCCER_PLAYER_BIRTHDAYS_PATH . 'includes/class-templates.php';
 	require_once INTERSOCCER_PLAYER_BIRTHDAYS_PATH . 'includes/class-logger.php';
 	require_once INTERSOCCER_PLAYER_BIRTHDAYS_PATH . 'includes/class-opt-out.php';
+	require_once INTERSOCCER_PLAYER_BIRTHDAYS_PATH . 'includes/class-opt-out-import.php';
 	require_once INTERSOCCER_PLAYER_BIRTHDAYS_PATH . 'includes/class-mailer.php';
 	require_once INTERSOCCER_PLAYER_BIRTHDAYS_PATH . 'includes/class-scheduler.php';
 	require_once INTERSOCCER_PLAYER_BIRTHDAYS_PATH . 'includes/admin/class-admin.php';
