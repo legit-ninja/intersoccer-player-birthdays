@@ -49,6 +49,24 @@ class SettingsTest extends TestCase {
 		$out = Settings::update(array());
 		$this->assertSame(7, $out['lead_days']);
 		$this->assertSame(60, $out['look_ahead_days']);
-		$this->assertSame(14, $out['min_notice_days']);
+		$this->assertSame(21, $out['min_notice_days']);
+	}
+
+	public function test_get_remaps_legacy_fourteen_notice_to_twenty_one() {
+		$GLOBALS['wp_options'][ Settings::OPTION_KEY ] = array(
+			'min_notice_days' => 14,
+			'look_ahead_days' => 60,
+		);
+		$out = Settings::get();
+		$this->assertSame(21, $out['min_notice_days']);
+	}
+
+	public function test_get_keeps_intentional_zero_notice() {
+		$GLOBALS['wp_options'][ Settings::OPTION_KEY ] = array(
+			'min_notice_days' => 0,
+			'look_ahead_days' => 60,
+		);
+		$out = Settings::get();
+		$this->assertSame(0, $out['min_notice_days']);
 	}
 }

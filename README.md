@@ -1,6 +1,6 @@
 # InterSoccer Player Birthdays
 
-Current Version: **1.8.28**
+Current Version: **1.8.31**
 
 Emails guardians **one greeting per child** before a registered player's calendar birthday, and sends the WordPress admin a digest of upcoming birthdays.
 
@@ -18,7 +18,7 @@ This is **not** birthday-party product bookings and **not** the Reports/Rosters 
 
 - Upcoming — queue, send now, opt-out
 - Templates — EN/FR/DE `wp_editor` + merge tags
-- Settings — automation (off by default), lead days, digest, extra recipients, test address (lead / look-ahead max 153 days, about 5 months; defaults 7 / 60 / 14)
+- Settings — automation (off by default), lead days, digest, extra recipients, test address (lead / look-ahead max 153 days, about 5 months; defaults 7 / 60 / 21)
 - Log — player UUID + user ID + year + mode (no names/emails/DOB)
 
 Merge tags: `{{player_first_name}}`, `{{player_last_name}}`, `{{guardian_first_name}}`, `{{age_turning}}`, `{{birthday_date}}`, `{{opt_out_url}}`, `{{site_title}}`

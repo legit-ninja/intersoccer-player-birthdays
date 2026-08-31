@@ -32,7 +32,7 @@ class Settings {
 			'digest_cadence'          => 'daily',
 			'lead_days'               => 7,
 			'look_ahead_days'         => 60,
-			'min_notice_days'         => 14,
+			'min_notice_days'         => 21,
 			'digest_extra_recipients' => '',
 			'test_email'              => '',
 		);
@@ -50,10 +50,12 @@ class Settings {
 		}
 		$merged = array_merge(self::defaults(), $stored);
 		if (!array_key_exists('min_notice_days', $stored)) {
-			$merged['min_notice_days'] = 14;
+			$merged['min_notice_days'] = 21;
 			if ((int) $merged['look_ahead_days'] <= 14) {
 				$merged['look_ahead_days'] = 60;
 			}
+		} elseif ((int) $stored['min_notice_days'] === 14) {
+			$merged['min_notice_days'] = 21;
 		}
 		return $merged;
 	}
@@ -75,7 +77,7 @@ class Settings {
 		if ($clean['lead_days'] > $clean['look_ahead_days']) {
 			$clean['look_ahead_days'] = $clean['lead_days'];
 		}
-		$clean['min_notice_days'] = self::clamp_int($input['min_notice_days'] ?? 14, 0, self::WINDOW_DAYS_MAX, 14);
+		$clean['min_notice_days'] = self::clamp_int($input['min_notice_days'] ?? 21, 0, self::WINDOW_DAYS_MAX, 21);
 		if ($clean['min_notice_days'] > $clean['look_ahead_days']) {
 			$clean['min_notice_days'] = $clean['look_ahead_days'];
 		}

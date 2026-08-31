@@ -152,6 +152,38 @@ class FinderTest extends TestCase {
 		$this->assertSame('sam@example.test', $search[0]['user_email']);
 	}
 
+	public function test_filter_upcoming_hides_under_twenty_one_days() {
+		$rows = array(
+			array(
+				'days_until'          => 0,
+				'guardian_name'       => 'Zero Day',
+				'guardian_first_name' => 'Zero',
+				'user_email'          => 'zero@example.test',
+				'first_name'          => 'A',
+				'last_name'           => 'Zero',
+			),
+			array(
+				'days_until'          => 20,
+				'guardian_name'       => 'Twenty Day',
+				'guardian_first_name' => 'Twenty',
+				'user_email'          => 'twenty@example.test',
+				'first_name'          => 'B',
+				'last_name'           => 'Twenty',
+			),
+			array(
+				'days_until'          => 21,
+				'guardian_name'       => 'Twenty One',
+				'guardian_first_name' => 'Okay',
+				'user_email'          => 'ok@example.test',
+				'first_name'          => 'C',
+				'last_name'           => 'Okay',
+			),
+		);
+		$notice = Finder::filter_upcoming_rows($rows, '', 21);
+		$this->assertCount(1, $notice);
+		$this->assertSame('Twenty One', $notice[0]['guardian_name']);
+	}
+
 	public function test_is_opted_out_is_per_guardian() {
 		$this->assertFalse(Finder::is_opted_out(42));
 		update_user_meta(42, Finder::OPT_OUT_META, '1');
