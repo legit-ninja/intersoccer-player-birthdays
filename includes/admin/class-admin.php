@@ -219,7 +219,7 @@ class Admin {
 		echo esc_html__('days away', 'intersoccer-player-birthdays') . ' ';
 		submit_button(__('Apply', 'intersoccer-player-birthdays'), 'secondary', 'pb_filter', false);
 		echo '</p>';
-		echo '<p class="description">' . esc_html__('Default hide is 14 days so staff can reach parents with about two weeks of notice to book. Set to 0 to include nearer birthdays. Search matches parent name, email, and player name as you type.', 'intersoccer-player-birthdays') . '</p>';
+		echo '<p class="description">' . esc_html__('Default hide is 21 days so staff can reach parents with about three weeks of notice to book. Set to 0 to include nearer birthdays. Search matches parent name, email, and player name as you type.', 'intersoccer-player-birthdays') . '</p>';
 		echo '</form>';
 
 		if (empty($all_rows)) {
@@ -362,7 +362,7 @@ class Admin {
 		) . '</p></td></tr>';
 		echo '<tr><th>' . esc_html__('Hide nearer than (days)', 'intersoccer-player-birthdays') . '</th><td>';
 		echo '<input type="number" min="0" max="' . esc_attr((string) Settings::WINDOW_DAYS_MAX) . '" name="settings[min_notice_days]" value="' . esc_attr((string) (int) $s['min_notice_days']) . '" />';
-		echo '<p class="description">' . esc_html__('Upcoming list hides birthdays fewer than this many days away (default 14, so office can contact parents about two weeks before). 0 shows every birthday in the look-ahead window.', 'intersoccer-player-birthdays') . '</p></td></tr>';
+		echo '<p class="description">' . esc_html__('Upcoming list and admin digest hide birthdays fewer than this many days away (default 21, so office can contact parents about three weeks before). 0 shows every birthday in the look-ahead window.', 'intersoccer-player-birthdays') . '</p></td></tr>';
 		echo '<tr><th>' . esc_html__('Extra digest recipients', 'intersoccer-player-birthdays') . '</th><td>';
 		echo '<input type="text" class="large-text" name="settings[digest_extra_recipients]" value="' . esc_attr($s['digest_extra_recipients']) . '" />';
 		echo '<p class="description">' . esc_html__('Optional comma-separated emails in addition to the WordPress admin email.', 'intersoccer-player-birthdays') . '</p></td></tr>';
