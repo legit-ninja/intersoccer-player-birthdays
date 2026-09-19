@@ -617,6 +617,16 @@ class Admin {
 		echo '<tr><th>' . esc_html__('Test email address', 'intersoccer-player-birthdays') . '</th><td>';
 		echo '<input type="email" class="regular-text" name="settings[test_email]" value="' . esc_attr($s['test_email']) . '" />';
 		echo '<p class="description">' . esc_html__('If empty, test mail goes to the logged-in admin.', 'intersoccer-player-birthdays') . '</p></td></tr>';
+		echo '<tr><th>' . esc_html__('Email batch size', 'intersoccer-player-birthdays') . '</th><td>';
+		echo '<input type="number" min="' . esc_attr((string) Settings::BATCH_SIZE_MIN) . '" max="' . esc_attr((string) Settings::BATCH_SIZE_MAX) . '" name="settings[email_batch_size]" value="' . esc_attr((string) (int) $s['email_batch_size']) . '" />';
+		echo '<p class="description">' . esc_html(
+			sprintf(
+				/* translators: 1: minimum batch size, 2: maximum batch size */
+				__('Number of greeting emails per Action Scheduler job (%1$d–%2$d). Lower values reduce server load but create more jobs.', 'intersoccer-player-birthdays'),
+				Settings::BATCH_SIZE_MIN,
+				Settings::BATCH_SIZE_MAX
+			)
+		) . '</p></td></tr>';
 		echo '</table>';
 		submit_button(__('Save settings', 'intersoccer-player-birthdays'));
 		echo '</form>';
