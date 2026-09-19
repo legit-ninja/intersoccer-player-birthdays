@@ -17,6 +17,7 @@ class Scheduler {
 	const CRON_HOOK = 'intersoccer_player_birthdays_daily';
 	const AS_HOOK = 'intersoccer_player_birthdays_send_batch';
 	const AS_GROUP = 'intersoccer-player-birthdays';
+	/** @deprecated Use Settings::get()['email_batch_size'] instead. Retained for backward compatibility. */
 	const BATCH_SIZE = 25;
 
 	/**
@@ -104,7 +105,11 @@ class Scheduler {
 				'player_id' => $row['player_id'],
 			);
 		}
-		$chunks = array_chunk($payloads, self::BATCH_SIZE);
+		$batch_size = (int) $settings['email_batch_size'];
+		if ($batch_size < 1) {
+			$batch_size = Settings::BATCH_SIZE_DEFAULT;
+		}
+		$chunks = array_chunk($payloads, $batch_size);
 		foreach ($chunks as $chunk) {
 			$this->enqueue_or_send($chunk);
 		}

@@ -19,6 +19,12 @@ class Settings {
 	const TIMEZONE = 'Europe/Zurich';
 	/** Max lead / look-ahead / hide-nearer days (~5 months). */
 	const WINDOW_DAYS_MAX = 153;
+	/** Min batch size for email sends. */
+	const BATCH_SIZE_MIN = 1;
+	/** Max batch size for email sends (keeps Action Scheduler jobs manageable). */
+	const BATCH_SIZE_MAX = 100;
+	/** Default batch size for email sends. */
+	const BATCH_SIZE_DEFAULT = 25;
 
 	/**
 	 * Default settings.
@@ -35,6 +41,7 @@ class Settings {
 			'min_notice_days'         => 21,
 			'digest_extra_recipients' => '',
 			'test_email'              => '',
+			'email_batch_size'        => self::BATCH_SIZE_DEFAULT,
 		);
 	}
 
@@ -84,6 +91,12 @@ class Settings {
 		$clean['digest_extra_recipients'] = self::sanitize_email_list($input['digest_extra_recipients'] ?? '');
 		$test = isset($input['test_email']) ? sanitize_email((string) $input['test_email']) : '';
 		$clean['test_email'] = is_email($test) ? $test : '';
+		$clean['email_batch_size'] = self::clamp_int(
+			$input['email_batch_size'] ?? self::BATCH_SIZE_DEFAULT,
+			self::BATCH_SIZE_MIN,
+			self::BATCH_SIZE_MAX,
+			self::BATCH_SIZE_DEFAULT
+		);
 		update_option(self::OPTION_KEY, $clean);
 		return $clean;
 	}

@@ -69,4 +69,35 @@ class SettingsTest extends TestCase {
 		$out = Settings::get();
 		$this->assertSame(0, $out['min_notice_days']);
 	}
+
+	public function test_update_keeps_default_batch_size_when_omitted() {
+		$out = Settings::update(array());
+		$this->assertSame(Settings::BATCH_SIZE_DEFAULT, $out['email_batch_size']);
+	}
+
+	public function test_update_persists_valid_batch_size() {
+		$out = Settings::update(array('email_batch_size' => 50));
+		$this->assertSame(50, $out['email_batch_size']);
+	}
+
+	public function test_update_clamps_batch_size_below_min_to_min() {
+		$out = Settings::update(array('email_batch_size' => 0));
+		$this->assertSame(Settings::BATCH_SIZE_MIN, $out['email_batch_size']);
+	}
+
+	public function test_update_clamps_batch_size_above_max_to_max() {
+		$out = Settings::update(array('email_batch_size' => 500));
+		$this->assertSame(Settings::BATCH_SIZE_MAX, $out['email_batch_size']);
+	}
+
+	public function test_update_clamps_negative_batch_size_to_min() {
+		$out = Settings::update(array('email_batch_size' => -10));
+		$this->assertSame(Settings::BATCH_SIZE_MIN, $out['email_batch_size']);
+	}
+
+	public function test_defaults_include_email_batch_size() {
+		$defaults = Settings::defaults();
+		$this->assertArrayHasKey('email_batch_size', $defaults);
+		$this->assertSame(25, $defaults['email_batch_size']);
+	}
 }
