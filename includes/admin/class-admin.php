@@ -15,6 +15,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 class Admin {
 
 	const PAGE_SLUG = 'intersoccer-player-birthdays';
+	const PLUGIN_SLUG = 'intersoccer-player-birthdays';
 	const NONCE_ACTION = 'intersoccer_player_birthdays';
 	const CAPABILITY = 'manage_options';
 
@@ -131,7 +132,12 @@ class Admin {
 		check_admin_referer(self::NONCE_ACTION);
 		$action = sanitize_key(wp_unslash($_POST['intersoccer_pb_action']));
 		if ($action === 'save_settings') {
-			Settings::update(isset($_POST['settings']) && is_array($_POST['settings']) ? wp_unslash($_POST['settings']) : array());
+			$input = isset($_POST['settings']) && is_array($_POST['settings']) ? wp_unslash($_POST['settings']) : array();
+			Settings::update($input);
+			if (class_exists('InterSoccer_Updates_Http') && method_exists('InterSoccer_Updates_Http', 'set_beta_enabled_for_slug')) {
+				$beta = !empty($input['beta_enabled']);
+				\InterSoccer_Updates_Http::set_beta_enabled_for_slug(self::PLUGIN_SLUG, $beta);
+			}
 			wp_safe_redirect(add_query_arg(array('page' => self::PAGE_SLUG, 'tab' => 'settings', 'updated' => '1'), admin_url('admin.php')));
 			exit;
 		}
@@ -627,6 +633,20 @@ class Admin {
 				Settings::BATCH_SIZE_MAX
 			)
 		) . '</p></td></tr>';
+
+		$updates_available = class_exists('InterSoccer_Updates_Http') && method_exists('InterSoccer_Updates_Http', 'is_beta_enabled_for_slug');
+		$beta_enabled = $updates_available && \InterSoccer_Updates_Http::is_beta_enabled_for_slug(self::PLUGIN_SLUG);
+		echo '<tr><th>' . esc_html__('Enable beta updates', 'intersoccer-player-birthdays') . '</th><td>';
+		if ($updates_available) {
+			echo '<label><input type="checkbox" name="settings[beta_enabled]" value="1" ' . checked($beta_enabled, true, false) . ' /> ';
+			echo esc_html__('Receive prerelease versions when available.', 'intersoccer-player-birthdays') . '</label>';
+		} else {
+			echo '<label><input type="checkbox" disabled="disabled" /> ';
+			echo esc_html__('Receive prerelease versions when available.', 'intersoccer-player-birthdays') . '</label>';
+			echo '<p class="description">' . esc_html__('InterSoccer Updates plugin is not active.', 'intersoccer-player-birthdays') . '</p>';
+		}
+		echo '</td></tr>';
+
 		echo '</table>';
 		submit_button(__('Save settings', 'intersoccer-player-birthdays'));
 		echo '</form>';
