@@ -28,6 +28,17 @@ Images (banner or signature) must use absolute `https://` URLs. Store-wide email
 
 Outlook/Word paste is supported: empty spacer `<div>`/`<p>` tags are turned into line breaks so paragraph gaps survive WooCommerce email CSS. Pretty-print newlines between tags are not converted (that over-spaces HTML). `{site_title}` / `{{site_title}}` in Woo footer chrome are replaced with the site name.
 
+## Auto-send Window
+
+When automation is enabled, greetings are sent to players whose birthday falls within a **range**:
+
+- **Lead days** = minimum days before birthday (office gets at least this much notice)
+- **Look-ahead days** = maximum days before birthday
+
+A player is eligible when `lead_days <= days_until <= look_ahead_days`. Players outside this window are skipped — too late (< lead) or too early (> look-ahead).
+
+On first enable or after a settings change, all players currently in the range are queued on the next daily run (natural catch-up). Each child receives at most one greeting per birthday year (`already_sent` guard).
+
 Timezone: Europe/Zurich. 29 Feb in non-leap years is treated as 28 Feb.
 
 ## Tests

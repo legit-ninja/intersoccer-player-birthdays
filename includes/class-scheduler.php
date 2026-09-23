@@ -168,6 +168,7 @@ class Scheduler {
 		$now = Settings::now();
 		$settings = Settings::get();
 		$lead = (int) $settings['lead_days'];
+		$look_ahead = (int) $settings['look_ahead_days'];
 		foreach ($chunk as $item) {
 			if (!is_array($item)) {
 				continue;
@@ -177,7 +178,7 @@ class Scheduler {
 			if ($user_id < 1 || $player_id === '') {
 				continue;
 			}
-			$resolved = $this->resolve_due_player($user_id, $player_id, $now, $lead);
+			$resolved = $this->resolve_due_player($user_id, $player_id, $now, $lead, $look_ahead);
 			if ($resolved === null) {
 				continue;
 			}
@@ -188,13 +189,17 @@ class Scheduler {
 	/**
 	 * Re-evaluate a queued player before sending.
 	 *
-	 * @param int                $user_id   Guardian.
-	 * @param string             $player_id UUID.
-	 * @param \DateTimeImmutable $now       Today.
-	 * @param int                $lead      Lead days.
+	 * Validates that the player is still within the auto-send range window
+	 * (lead_days <= days_until <= look_ahead_days) and has not already been sent.
+	 *
+	 * @param int                $user_id    Guardian.
+	 * @param string             $player_id  UUID.
+	 * @param \DateTimeImmutable $now        Today.
+	 * @param int                $lead       Lead days (minimum).
+	 * @param int                $look_ahead Look-ahead days (maximum).
 	 * @return array<string, mixed>|null
 	 */
-	private function resolve_due_player($user_id, $player_id, \DateTimeImmutable $now, $lead) {
+	private function resolve_due_player($user_id, $player_id, \DateTimeImmutable $now, $lead, $look_ahead) {
 		if (Finder::is_opted_out($user_id)) {
 			return null;
 		}
@@ -219,7 +224,7 @@ class Scheduler {
 		if (!is_array($match)) {
 			return null;
 		}
-		$row = Finder::evaluate_player($match, $user_id, $now, $lead, $lead);
+		$row = Finder::evaluate_player($match, $user_id, $now, $look_ahead, $lead);
 		if ($row === null) {
 			return null;
 		}

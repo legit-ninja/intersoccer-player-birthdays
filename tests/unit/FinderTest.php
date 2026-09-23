@@ -55,7 +55,7 @@ class FinderTest extends TestCase {
 		$this->assertSame('2024-02-29', $occurrence->format('Y-m-d'));
 	}
 
-	public function test_evaluate_player_exact_lead_and_look_ahead() {
+	public function test_evaluate_player_range_and_look_ahead() {
 		$now = $this->onDate('2026-08-18');
 		$player = array(
 			'player_id'  => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
@@ -63,14 +63,66 @@ class FinderTest extends TestCase {
 			'last_name'  => 'Test',
 			'dob'        => '2018-08-25',
 		);
-		$exact = Finder::evaluate_player($player, 9, $now, 14, 7);
-		$this->assertNotNull($exact);
-		$this->assertSame(7, $exact['days_until']);
-		$this->assertSame(2026, $exact['occurrence_year']);
-		$this->assertSame(8, $exact['age_turning']);
+		$in_range = Finder::evaluate_player($player, 9, $now, 14, 7);
+		$this->assertNotNull($in_range);
+		$this->assertSame(7, $in_range['days_until']);
+		$this->assertSame(2026, $in_range['occurrence_year']);
+		$this->assertSame(8, $in_range['age_turning']);
 
 		$outside = Finder::evaluate_player($player, 9, $this->onDate('2026-08-01'), 14, null);
 		$this->assertNull($outside);
+	}
+
+	public function test_evaluate_player_range_eligibility_boundaries() {
+		$player = array(
+			'player_id'  => 'range-test-player',
+			'first_name' => 'Range',
+			'last_name'  => 'Test',
+			'dob'        => '2018-09-01',
+		);
+
+		$lead_days = 7;
+		$look_ahead = 14;
+
+		$exactly_at_lead = $this->onDate('2026-08-25');
+		$result = Finder::evaluate_player($player, 1, $exactly_at_lead, $look_ahead, $lead_days);
+		$this->assertNotNull($result, 'Player at exactly lead_days should be eligible');
+		$this->assertSame(7, $result['days_until']);
+
+		$exactly_at_look_ahead = $this->onDate('2026-08-18');
+		$result = Finder::evaluate_player($player, 1, $exactly_at_look_ahead, $look_ahead, $lead_days);
+		$this->assertNotNull($result, 'Player at exactly look_ahead_days should be eligible');
+		$this->assertSame(14, $result['days_until']);
+
+		$mid_range = $this->onDate('2026-08-22');
+		$result = Finder::evaluate_player($player, 1, $mid_range, $look_ahead, $lead_days);
+		$this->assertNotNull($result, 'Player in middle of range should be eligible');
+		$this->assertSame(10, $result['days_until']);
+
+		$too_close = $this->onDate('2026-08-26');
+		$result = Finder::evaluate_player($player, 1, $too_close, $look_ahead, $lead_days);
+		$this->assertNull($result, 'Player with days_until < lead_days should NOT be eligible');
+
+		$too_far = $this->onDate('2026-08-17');
+		$result = Finder::evaluate_player($player, 1, $too_far, $look_ahead, $lead_days);
+		$this->assertNull($result, 'Player with days_until > look_ahead_days should NOT be eligible');
+	}
+
+	public function test_evaluate_player_upcoming_mode_includes_zero_days() {
+		$player = array(
+			'player_id'  => 'upcoming-test-player',
+			'first_name' => 'Upcoming',
+			'last_name'  => 'Test',
+			'dob'        => '2018-09-01',
+		);
+
+		$birthday_today = $this->onDate('2026-09-01');
+		$result = Finder::evaluate_player($player, 1, $birthday_today, 14, null);
+		$this->assertNotNull($result, 'Upcoming mode (null min_lead) should include birthday today');
+		$this->assertSame(0, $result['days_until']);
+
+		$result_with_lead = Finder::evaluate_player($player, 1, $birthday_today, 14, 7);
+		$this->assertNull($result_with_lead, 'Range mode should exclude birthday today when lead > 0');
 	}
 
 	public function test_evaluate_player_five_month_lead_and_look_ahead() {
@@ -81,16 +133,16 @@ class FinderTest extends TestCase {
 			'last_name'  => 'Test',
 			'dob'        => '2018-01-15',
 		);
-		$exact = Finder::evaluate_player($player, 9, $now, 90, 150);
-		$this->assertNotNull($exact);
-		$this->assertSame(150, $exact['days_until']);
+		$in_range = Finder::evaluate_player($player, 9, $now, 153, 90);
+		$this->assertNotNull($in_range);
+		$this->assertSame(150, $in_range['days_until']);
 
 		$in_window = Finder::evaluate_player($player, 9, $now, 153, null);
 		$this->assertNotNull($in_window);
 		$this->assertSame(150, $in_window['days_until']);
 
-		$too_soon = Finder::evaluate_player($player, 9, $now, 90, null);
-		$this->assertNull($too_soon);
+		$too_far = Finder::evaluate_player($player, 9, $now, 90, null);
+		$this->assertNull($too_far);
 	}
 
 	public function test_evaluate_player_skips_missing_id_and_invalid_dob() {

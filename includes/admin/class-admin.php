@@ -593,7 +593,7 @@ class Admin {
 		echo '<span class="description">' . esc_html(
 			sprintf(
 				/* translators: %d: maximum lead days */
-				__('Days before the birthday to send the greeting (1–%d).', 'intersoccer-player-birthdays'),
+				__('Minimum days before the birthday to send (1–%d). Office will have at least this much notice.', 'intersoccer-player-birthdays'),
 				Settings::WINDOW_DAYS_MAX
 			)
 		) . '</span></td></tr>';
@@ -610,7 +610,7 @@ class Admin {
 		echo '<p class="description">' . esc_html(
 			sprintf(
 				/* translators: %d: maximum look-ahead days */
-				__('How far ahead to list and include in the admin digest (1–%d). Keep this larger than the hide-below value.', 'intersoccer-player-birthdays'),
+				__('Maximum days before birthday to auto-send and include in the admin digest (1–%d). Auto-send queues players whose birthday is between lead days and look-ahead days away.', 'intersoccer-player-birthdays'),
 				Settings::WINDOW_DAYS_MAX
 			)
 		) . '</p></td></tr>';

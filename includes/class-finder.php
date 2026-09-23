@@ -114,14 +114,18 @@ class Finder {
 	/**
 	 * Evaluate one player row (no WP I/O).
 	 *
+	 * Window interpretation depends on parameters:
+	 * - $min_lead = null: upcoming mode, 0 <= days_until <= $look_ahead
+	 * - $min_lead = int:  auto-send range mode, $min_lead <= days_until <= $look_ahead
+	 *
 	 * @param array<string, mixed> $player     Player row.
 	 * @param int                  $user_id    Guardian user ID.
 	 * @param \DateTimeImmutable   $now        Today in Zurich.
-	 * @param int                  $look_ahead Max days for upcoming (inclusive).
-	 * @param int|null             $exact_lead If set, require days_until === this.
+	 * @param int                  $look_ahead Max days for upcoming/auto-send (inclusive).
+	 * @param int|null             $min_lead   If set, minimum days_until for range eligibility.
 	 * @return array<string, mixed>|null
 	 */
-	public static function evaluate_player(array $player, $user_id, \DateTimeImmutable $now, $look_ahead, $exact_lead = null) {
+	public static function evaluate_player(array $player, $user_id, \DateTimeImmutable $now, $look_ahead, $min_lead = null) {
 		$player_id = isset($player['player_id']) ? sanitize_text_field((string) $player['player_id']) : '';
 		if ($player_id === '') {
 			return null;
@@ -133,11 +137,8 @@ class Finder {
 		}
 		$occurrence = self::next_occurrence($dob, $now);
 		$days = self::days_until($occurrence, $now);
-		if ($exact_lead !== null) {
-			if ($days !== (int) $exact_lead) {
-				return null;
-			}
-		} elseif ($days < 0 || $days > (int) $look_ahead) {
+		$min = $min_lead !== null ? (int) $min_lead : 0;
+		if ($days < $min || $days > (int) $look_ahead) {
 			return null;
 		}
 		return array(
@@ -155,12 +156,16 @@ class Finder {
 	/**
 	 * Scan guardians with players. Opted-out guardians stay in the list.
 	 *
+	 * Window interpretation depends on parameters:
+	 * - $min_lead = null: upcoming mode, 0 <= days_until <= $look_ahead
+	 * - $min_lead = int:  auto-send range mode, $min_lead <= days_until <= $look_ahead
+	 *
 	 * @param \DateTimeImmutable $now        Today.
-	 * @param int                $look_ahead Upcoming window.
-	 * @param int|null           $exact_lead Auto-send exact match.
+	 * @param int                $look_ahead Upcoming/auto-send window max.
+	 * @param int|null           $min_lead   If set, minimum days_until for range eligibility.
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function scan(\DateTimeImmutable $now, $look_ahead, $exact_lead = null) {
+	public static function scan(\DateTimeImmutable $now, $look_ahead, $min_lead = null) {
 		$results = array();
 		$offset = 0;
 		while (true) {
@@ -176,7 +181,7 @@ class Finder {
 					if (!is_array($player)) {
 						continue;
 					}
-					$row = self::evaluate_player($player, $user_id, $now, $look_ahead, $exact_lead);
+					$row = self::evaluate_player($player, $user_id, $now, $look_ahead, $min_lead);
 					if ($row === null) {
 						continue;
 					}
