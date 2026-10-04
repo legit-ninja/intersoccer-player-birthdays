@@ -13,6 +13,8 @@ class SchedulerDigestTest extends TestCase {
 
 	protected function setUp(): void {
 		$GLOBALS['wp_options'] = array();
+		$GLOBALS['wp_mail_sent'] = array();
+		$GLOBALS['wp_mail_should_fail'] = false;
 	}
 
 	public function test_daily_digest_skips_same_zurich_day() {
@@ -185,5 +187,35 @@ class SchedulerDigestTest extends TestCase {
 			$players_in_range,
 			'All players in range should be eligible for catch-up'
 		);
+	}
+
+	public function test_failed_digest_does_not_count_as_sent() {
+		$GLOBALS['wp_options'][ Settings::OPTION_KEY ] = array(
+			'digest_enabled'     => true,
+			'digest_cadence'     => 'weekly',
+			'automation_enabled' => false,
+		);
+		$scheduler = new Scheduler(new Logger());
+		$scheduler->run_daily();
+		$this->assertSame('', (string) get_option(Settings::LAST_DIGEST_OPTION, ''));
+
+		$GLOBALS['wp_options']['admin_email'] = 'office@example.test';
+		$GLOBALS['wp_mail_should_fail'] = true;
+		$scheduler->run_daily();
+		$this->assertSame('', (string) get_option(Settings::LAST_DIGEST_OPTION, ''));
+		$this->assertNotEmpty($GLOBALS['wp_mail_sent']);
+	}
+
+	public function test_successful_digest_records_zurich_date() {
+		$GLOBALS['wp_options']['admin_email'] = 'office@example.test';
+		$GLOBALS['wp_options'][ Settings::OPTION_KEY ] = array(
+			'digest_enabled'     => true,
+			'digest_cadence'     => 'daily',
+			'automation_enabled' => false,
+		);
+		$scheduler = new Scheduler(new Logger());
+		$scheduler->run_daily();
+		$today = Settings::now()->format('Y-m-d');
+		$this->assertSame($today, (string) get_option(Settings::LAST_DIGEST_OPTION, ''));
 	}
 }
