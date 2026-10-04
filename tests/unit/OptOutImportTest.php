@@ -121,4 +121,41 @@ class OptOutImportTest extends TestCase {
 		$this->assertSame('Display Only', $rows[0]['name']);
 		$this->assertSame('disp@example.test', $rows[0]['email']);
 	}
+
+	public function test_login_email_does_not_silence_account_without_the_child() {
+		$this->add_user(30, 'parent@example.com', 'Empty Login');
+		$this->add_user(31, 'family@example.test', 'Family Account', 'parent@example.com', 'Family Account');
+		update_user_meta(31, 'intersoccer_players', array(array('player_id' => 'child-1')));
+
+		$classified = OptOutImport::classify_rows(
+			array(array('email' => 'parent@example.com', 'name' => 'Family Account'))
+		);
+		$this->assertSame('matched', $classified[0]['status']);
+		$this->assertSame(31, $classified[0]['user_id']);
+		$this->assertSame(array(31), OptOutImport::apply_ids($classified));
+		$this->assertFalse(Finder::is_opted_out(30));
+	}
+
+	public function test_login_email_kept_when_that_account_owns_the_child() {
+		$this->add_user(32, 'parent@example.com', 'Real Parent');
+		update_user_meta(32, 'intersoccer_players', array(array('player_id' => 'child-2')));
+		$this->add_user(33, 'other@example.test', 'Billing Only', 'parent@example.com', 'Billing Only');
+
+		$classified = OptOutImport::classify_rows(
+			array(array('email' => 'parent@example.com', 'name' => 'Real Parent'))
+		);
+		$this->assertSame('matched', $classified[0]['status']);
+		$this->assertSame(32, $classified[0]['user_id']);
+	}
+
+	public function test_login_and_billing_collision_without_a_single_owner_is_ambiguous() {
+		$this->add_user(34, 'parent@example.com', 'Login Account');
+		$this->add_user(35, 'other@example.test', 'Billing Account', 'parent@example.com');
+
+		$classified = OptOutImport::classify_rows(
+			array(array('email' => 'parent@example.com', 'name' => ''))
+		);
+		$this->assertSame('ambiguous', $classified[0]['status']);
+		$this->assertSame(array(), OptOutImport::apply_ids($classified));
+	}
 }
