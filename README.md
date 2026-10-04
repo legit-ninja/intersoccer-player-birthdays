@@ -1,6 +1,6 @@
 # InterSoccer Player Birthdays
 
-Current Version: **1.8.34**
+Current Version: **1.10.4**
 
 Emails guardians **one greeting per child** before a registered player's calendar birthday, and sends the WordPress admin a digest of upcoming birthdays.
 
