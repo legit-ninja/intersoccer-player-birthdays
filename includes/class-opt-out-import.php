@@ -262,27 +262,94 @@ class OptOutImport {
 	 * @return array<int, object>
 	 */
 	private static function find_users_for_email($email) {
+		$account = null;
 		if (function_exists('get_user_by')) {
-			$by_login = get_user_by('email', $email);
-			if ($by_login) {
-				return array($by_login);
+			$by_email = get_user_by('email', $email);
+			if ($by_email) {
+				$account = $by_email;
 			}
 		}
-		if (!function_exists('get_users')) {
-			return array();
-		}
-		$found = get_users(
-			array(
-				'number'     => 3,
-				'meta_query' => array(
-					array(
-						'key'   => 'billing_email',
-						'value' => $email,
+		$billing = array();
+		if (function_exists('get_users')) {
+			$found = get_users(
+				array(
+					'number'     => 3,
+					'meta_query' => array(
+						array(
+							'key'   => 'billing_email',
+							'value' => $email,
+						),
 					),
-				),
-			)
-		);
-		return is_array($found) ? array_values($found) : array();
+				)
+			);
+			if (is_array($found)) {
+				$billing = array_values($found);
+			}
+		}
+		if (!$account) {
+			return self::unique_users($billing);
+		}
+		$account_id = isset($account->ID) ? (int) $account->ID : 0;
+		$others = array();
+		foreach ($billing as $user) {
+			$id = is_object($user) && isset($user->ID) ? (int) $user->ID : 0;
+			if ($id < 1 || $id === $account_id) {
+				continue;
+			}
+			$others[] = $user;
+		}
+		if ($others === array()) {
+			return array($account);
+		}
+		// Login email and a different account's billing email. Do not opt out
+		// the empty login when the child lives on the billing account, and do
+		// not guess when more than one account could own the child.
+		if (count($others) === 1 && self::user_has_players($others[0]) && !self::user_has_players($account)) {
+			return array($others[0]);
+		}
+		if (count($others) === 1 && self::user_has_players($account) && !self::user_has_players($others[0])) {
+			return array($account);
+		}
+		return self::unique_users(array_merge(array($account), $billing));
+	}
+
+	/**
+	 * @param array<int, object> $users Users.
+	 * @return array<int, object>
+	 */
+	private static function unique_users(array $users) {
+		$unique = array();
+		foreach ($users as $user) {
+			if (!is_object($user)) {
+				continue;
+			}
+			$id = isset($user->ID) ? (int) $user->ID : 0;
+			if ($id < 1 || isset($unique[ $id ])) {
+				continue;
+			}
+			$unique[ $id ] = $user;
+		}
+		return array_values($unique);
+	}
+
+	/**
+	 * @param object $user User.
+	 * @return bool
+	 */
+	private static function user_has_players($user) {
+		$user_id = is_object($user) && isset($user->ID) ? (int) $user->ID : 0;
+		if ($user_id < 1) {
+			return false;
+		}
+		if (function_exists('intersoccer_get_user_players')) {
+			$players = intersoccer_get_user_players($user_id);
+			return is_array($players) && $players !== array();
+		}
+		$players = get_user_meta($user_id, 'intersoccer_players', true);
+		if (is_string($players) && function_exists('maybe_unserialize')) {
+			$players = maybe_unserialize($players);
+		}
+		return is_array($players) && $players !== array();
 	}
 
 	/**
