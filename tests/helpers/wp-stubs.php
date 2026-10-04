@@ -170,6 +170,9 @@ if (!function_exists('wp_get_current_user')) {
 if (!function_exists('wp_mail')) {
 	function wp_mail($to, $subject, $message, $headers = '') {
 		$GLOBALS['wp_mail_sent'][] = compact('to', 'subject', 'message', 'headers');
+		if (!empty($GLOBALS['wp_mail_should_fail'])) {
+			return false;
+		}
 		return true;
 	}
 }

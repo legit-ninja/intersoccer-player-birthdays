@@ -83,8 +83,9 @@ class Scheduler {
 		if (!empty($settings['digest_enabled']) && $this->should_send_digest($now, $settings)) {
 			$upcoming = Finder::scan($now, (int) $settings['look_ahead_days'], null);
 			$upcoming = Finder::filter_upcoming_rows($upcoming, '', (int) $settings['min_notice_days']);
-			$mailer->send_digest($upcoming);
-			update_option(Settings::LAST_DIGEST_OPTION, $now->format('Y-m-d'));
+			if ($mailer->send_digest($upcoming)) {
+				update_option(Settings::LAST_DIGEST_OPTION, $now->format('Y-m-d'));
+			}
 		}
 
 		if (empty($settings['automation_enabled'])) {
